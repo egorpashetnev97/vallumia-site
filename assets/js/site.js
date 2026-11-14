@@ -67,12 +67,31 @@
     root.classList.add('js');
   }
 
-  /* ---------- прокрутка: шапка и ход лент там, где браузер не привязывает его сам ---------- */
-  const nativeTimeline = CSS.supports('animation-timeline: view()');
-  if (!nativeTimeline) root.classList.add('no-sda');
+  /* ---------- как идут ленты ----------
+     scroll — вместе с прокруткой (везде, кроме iPhone и iPad); still — стоят; drift — идут
+     сами, по времени. На iOS по умолчанию still: Safari обновляет привязанную к прокрутке
+     анимацию на 60 Гц при прокрутке на 120, и лента дёргается.
+     ?film=scroll|drift|still — сравнение вариантов на устройстве; убрать после вердикта. */
+  const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const asked = new URLSearchParams(location.search).get('film');
+  const film = ['scroll', 'drift', 'still'].includes(asked) ? asked : ios ? 'still' : 'scroll';
+  if (film !== 'scroll') root.classList.add('film-' + film);
+
   const stages = $$('.stage');
   const heroFilm = $('.hero__film');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // сцена рядом с окном: её плёнка получает свой слой, а в варианте drift — идёт
+  if ('IntersectionObserver' in window) {
+    const near = new IntersectionObserver(entries => {
+      for (const e of entries) e.target.classList.toggle('is-live', e.isIntersecting);
+    }, { rootMargin: '25% 0px' });
+    [heroFilm, ...stages].forEach(el => el && near.observe(el));
+  }
+
+  /* ---------- прокрутка: шапка и ход лент там, где браузер не привязывает его сам ---------- */
+  const nativeTimeline = film !== 'scroll' || CSS.supports('animation-timeline: view()');
+  if (!nativeTimeline) root.classList.add('no-sda');
 
   let queued = false;
   const frame = () => {
