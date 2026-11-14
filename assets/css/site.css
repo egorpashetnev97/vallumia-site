@@ -195,15 +195,31 @@ a { color: inherit; text-decoration: none; }
   font: 500 max(11px, calc(var(--sh) * .095))/1 var(--font-stamp); font-style: normal;
   letter-spacing: .06em; color: var(--stamp); white-space: nowrap;
 }
-/* мутный кадр: рецепт мути артборда конверта — blur, saturate .4, brightness .65, contrast .85 и вуаль .28 */
+/* мутный кадр: муть (рецепт артборда конверта — blur, saturate .4, brightness .65, contrast .85
+   и вуаль .28) запечена в картинку — tools/mud.mjs. Живого фильтра на едущей ленте нет:
+   он пересчитывался на каждом кадре, и на iPhone первый экран подлагивал */
 .strip i.muddy { background: var(--dark-2); }
-.strip i.muddy > b { position: absolute; inset: 0; overflow: hidden; border-radius: 2px; }
-.strip i.muddy img {
-  position: absolute; inset: calc(var(--mb, 18px) * -1.6); max-width: none;
-  width: calc(100% + var(--mb, 18px) * 3.2); height: calc(100% + var(--mb, 18px) * 3.2);
-  object-fit: cover; filter: blur(var(--mb, 18px)) saturate(.4) brightness(.65) contrast(.85);
+.strip i.muddy img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 2px; }
+
+/* Длина плёнки — по ширине окна. В разметке кадров хватает на окно 5120 px, а на узком окне
+   лишние кадры только раздували едущие слои: на телефоне каждый был 4,5 тыс. px при видимых
+   950, двенадцать таких — около 175 МБ. Пороги: кадров столько, чтобы плёнка была длиннее
+   ленты на ход (проверяется зондом на границах порогов). */
+@media (max-width: 3499px) {
+  .stage .strip i:nth-child(n+37), .strip--back i:nth-child(n+32), .strip--front i:nth-child(n+19) { display: none; }
 }
-.strip i.muddy > b::after { content: ""; position: absolute; inset: 0; background: rgba(24, 20, 15, .28); }
+@media (max-width: 2599px) {
+  .stage .strip i:nth-child(n+29), .strip--back i:nth-child(n+25), .strip--front i:nth-child(n+15) { display: none; }
+}
+@media (max-width: 1999px) {
+  .stage .strip i:nth-child(n+23), .strip--back i:nth-child(n+20), .strip--front i:nth-child(n+12) { display: none; }
+}
+@media (max-width: 1499px) {
+  .stage .strip i:nth-child(n+19), .strip--back i:nth-child(n+17), .strip--front i:nth-child(n+11) { display: none; }
+}
+@media (max-width: 899px) {
+  .stage .strip i:nth-child(n+17), .strip--back i:nth-child(n+15) { display: none; }
+}
 
 /* ---------- корпус телефона вокруг снимка экрана ---------- */
 .phone {
@@ -232,7 +248,7 @@ a { color: inherit; text-decoration: none; }
 .hero__film { position: relative; height: clamp(250px, 30vw, 400px); margin-top: clamp(28px, 2vw, 32px); }
 .hero__film .strip { position: absolute; }
 .strip--back { --sh: clamp(84px, 10vw, 140px); top: 4%; left: -6%; width: 112%; rotate: 6deg; }
-.strip--front { --sh: clamp(150px, 17vw, 236px); --mb: clamp(16px, 2vw, 26px); top: 20%; left: -1%; width: 104%; rotate: -3deg; box-shadow: var(--shadow-raised); }
+.strip--front { --sh: clamp(150px, 17vw, 236px); top: 20%; left: -1%; width: 104%; rotate: -3deg; box-shadow: var(--shadow-raised); }
 /* невысокие окна (ноутбук 1440×790, 1366×650, 1280×720; телефон 375×667): первый экран ужимается по
    высоте, чтобы лента пробы входила в окно; на 1440×900 и 390×844 вид прежний */
 @media (min-width: 768px) and (max-height: 860px) {
@@ -397,10 +413,10 @@ a { color: inherit; text-decoration: none; }
 }
 /* окно фотографии на снимке экрана кадра 01, в долях снимка */
 .phone--develop { --print-t: 28.9%; --print-x: 16.3%; --print-b: 35.4%; }
-/* слой мути над отпечатком: вырез по окну фотографии */
-.phone__mud { position: absolute; inset: 0; height: 100%; opacity: 0; pointer-events: none; clip-path: inset(var(--print-t) var(--print-x) var(--print-b) round 2px); }
-/* невидимая метка того же окна: по ней site.js решает, что отпечаток вошёл в окно */
-.phone__print { position: absolute; inset: var(--print-t) var(--print-x) var(--print-b); pointer-events: none; }
+/* само окно: по нему site.js решает, что отпечаток вошёл в окно; в нём два готовых слоя —
+   муть и полурезкость (tools/mud.mjs), по умолчанию невидимые */
+.phone__print { position: absolute; inset: var(--print-t) var(--print-x) var(--print-b); overflow: hidden; border-radius: 2px; pointer-events: none; }
+.phone__print img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
 
 /* ---------- подвал ---------- */
 .footer { border-top: 1px solid var(--border-dark); padding-block: var(--space-8) var(--space-9); }
@@ -459,9 +475,12 @@ a { color: inherit; text-decoration: none; }
   }
   .no-sda .strip__film { translate: calc(var(--from) + (var(--to) - var(--from)) * var(--p, 0)) 0; }
 
-  /* сцена 4: кадр 01 один раз проступает из мути в резкость за 1400 мс */
-  .js .phone--develop:not(.is-in) .phone__mud { opacity: 1; filter: blur(calc(var(--w) * .045)) saturate(.4) brightness(.65) contrast(.85); }
-  .js .phone--develop.is-in .phone__mud { animation: develop var(--dur-reveal) var(--ease-in-out) both; }
+  /* сцена 4: кадр 01 один раз проступает из мути в резкость за 1400 мс. Радиус размытия не
+     анимируется (на iPhone финал от этого замирал): над отпечатком два готовых слоя, муть
+     гаснет первой, полурезкость — следом с перехлёстом; меняется только прозрачность */
+  .js .phone--develop:not(.is-in) .phone__print img { opacity: 1; }
+  .js .phone--develop.is-in .phone__mud { animation: fade-out calc(var(--dur-reveal) * .6) var(--ease-in-out) both; }
+  .js .phone--develop.is-in .phone__soft { animation: fade-out calc(var(--dur-reveal) * .65) var(--ease-in-out) calc(var(--dur-reveal) * .35) both; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -472,8 +491,4 @@ a { color: inherit; text-decoration: none; }
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes film-in { from { transform: translateX(var(--slide, 24px)); } }
 @keyframes film-run { from { translate: var(--from) 0; } to { translate: var(--to) 0; } }
-@keyframes develop {
-  from { opacity: 1; filter: blur(calc(var(--w) * .045)) saturate(.4) brightness(.65) contrast(.85); }
-  99% { opacity: 1; }
-  to { opacity: 0; filter: blur(0) saturate(1) brightness(1) contrast(1); }
-}
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
