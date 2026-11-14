@@ -462,7 +462,7 @@ a { color: inherit; text-decoration: none; }
   /* сцена 2: ленты едут вдоль оси вместе с прокруткой, кромочные номера считают кадры.
      Две ленты сцены идут навстречу. Ход привязан к прокрутке самим браузером; где такой
      привязки нет, долю хода --p ставит site.js. */
-  :root:not(.film-still, .film-drift) .stage { view-timeline: --stage block; }
+  .stage { view-timeline: --stage block; }
   .strip__film { --run: calc(var(--sh) * -2.4); --from: 0px; --to: var(--run); }
   .stage .strip:nth-of-type(2) > .strip__film { --from: var(--run); --to: 0px; }
   .strip--back > .strip__film { --run: calc(var(--sh) * -1.6); --from: var(--run); --to: 0px; }
@@ -471,25 +471,23 @@ a { color: inherit; text-decoration: none; }
   /* 1ms у хода — не время, а условие: без ненулевой длительности привязанная к прокрутке
      анимация в Firefox не идёт; браузеры с длительностью auto это число не замечают */
   @supports (animation-timeline: view()) {
-    :root:not(.film-still, .film-drift) .stage .strip__film { animation: film-run 1ms linear both; animation-timeline: --stage; }
-    :root:not(.film-still, .film-drift) .hero__film .strip__film {
+    .stage .strip__film { animation: film-run 1ms linear both; animation-timeline: --stage; }
+    /* Лента первого экрана на iPhone и iPad с прокруткой не едет (.hero-still ставит site.js):
+       Safari на iOS обновляет привязанную к прокрутке анимацию на 60 Гц, а страницу
+       прокручивает на 120 — крупная лента во весь экран заметно дёргалась. Решение
+       пользователя 2026-11-15 после сравнения на iPhone: остановить только её, ленты за
+       телефонами едут. Вход ленты при загрузке (сцена 1) остаётся: он идёт по времени. */
+    :root:not(.hero-still) .hero__film .strip__film {
       animation: film-in var(--dur-slow) var(--ease-out) both, film-run 1ms linear both;
       animation-timeline: auto, scroll(root block);
       animation-range-start: normal, 0px; animation-range-end: normal, 130vh;
     }
   }
   .no-sda .strip__film { translate: calc(var(--from) + (var(--to) - var(--from)) * var(--p, 0)) 0; }
+  .hero-still .hero__film .strip__film { translate: none; }
   /* плёнка рядом с окном живёт своим слоем: ход меняет только сдвиг слоя, ленту не перерисовывает */
-  :root:not(.film-still) .is-live .strip__film { will-change: transform, translate; }
-
-  /* Ход лент на iPhone и iPad. Safari на iOS обновляет привязанную к прокрутке анимацию на
-     60 Гц, а страницу прокручивает на 120 — лента внутри своей полосы дёргается (замечание
-     пользователя 2026-11-15; WebKit это знает). Поэтому там ленты по умолчанию стоят
-     (.film-still, ставит site.js), а .film-drift — вариант на сравнение: плёнка медленно
-     идёт сама, по времени, только пока сцена рядом с окном; такую анимацию Safari ведёт плавно */
-  .film-drift .strip__film { animation: film-run 26s var(--ease-in-out) infinite alternate paused; }
-  .film-drift .hero__film .strip__film { animation: film-in var(--dur-slow) var(--ease-out) both, film-run 26s var(--ease-in-out) var(--dur-slow) infinite alternate paused; }
-  .film-drift .is-live .strip__film { animation-play-state: running; }
+  .is-live .strip__film { will-change: transform, translate; }
+  .hero-still .hero__film .strip__film { will-change: auto; }
 
   /* сцена 4: кадр 01 один раз проступает из мути в резкость за 1400 мс. Радиус размытия не
      анимируется (на iPhone финал от этого замирал): над отпечатком два готовых слоя, муть

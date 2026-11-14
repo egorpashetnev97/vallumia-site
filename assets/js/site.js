@@ -67,21 +67,19 @@
     root.classList.add('js');
   }
 
-  /* ---------- как идут ленты ----------
-     scroll — вместе с прокруткой (везде, кроме iPhone и iPad); still — стоят; drift — идут
-     сами, по времени. На iOS по умолчанию still: Safari обновляет привязанную к прокрутке
-     анимацию на 60 Гц при прокрутке на 120, и лента дёргается.
-     ?film=scroll|drift|still — сравнение вариантов на устройстве; убрать после вердикта. */
+  /* ---------- лента первого экрана на iPhone и iPad стоит ----------
+     Safari на iOS обновляет привязанную к прокрутке анимацию на 60 Гц при прокрутке на 120,
+     и крупная лента первого экрана дёргалась; ленты за телефонами едут и там (решение
+     пользователя 2026-11-15, сравнение трёх вариантов на iPhone). iPad называет себя Mac —
+     его выдаёт сенсорный экран. */
   const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const asked = new URLSearchParams(location.search).get('film');
-  const film = ['scroll', 'drift', 'still'].includes(asked) ? asked : ios ? 'still' : 'scroll';
-  if (film !== 'scroll') root.classList.add('film-' + film);
+  if (ios) root.classList.add('hero-still');
 
   const stages = $$('.stage');
   const heroFilm = $('.hero__film');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
-  // сцена рядом с окном: её плёнка получает свой слой, а в варианте drift — идёт
+  // сцена рядом с окном: её плёнка получает свой слой
   if ('IntersectionObserver' in window) {
     const near = new IntersectionObserver(entries => {
       for (const e of entries) e.target.classList.toggle('is-live', e.isIntersecting);
@@ -90,7 +88,7 @@
   }
 
   /* ---------- прокрутка: шапка и ход лент там, где браузер не привязывает его сам ---------- */
-  const nativeTimeline = film !== 'scroll' || CSS.supports('animation-timeline: view()');
+  const nativeTimeline = CSS.supports('animation-timeline: view()');
   if (!nativeTimeline) root.classList.add('no-sda');
 
   let queued = false;
@@ -99,7 +97,7 @@
     const vh = innerHeight;
     syncTopbar(vh);
     if (nativeTimeline || reduced.matches) return;
-    heroFilm?.style.setProperty('--p', clamp01(scrollY / (vh * 1.3)).toFixed(4));
+    if (!ios) heroFilm?.style.setProperty('--p', clamp01(scrollY / (vh * 1.3)).toFixed(4));
     for (const stage of stages) {
       const r = stage.getBoundingClientRect();
       if (r.bottom < 0 || r.top > vh) continue;
