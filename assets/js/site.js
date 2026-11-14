@@ -14,6 +14,25 @@
     $$('a[data-android]').forEach(a => { a.href = a.dataset.android; });
   }
 
+  /* ---------- картинка, оборвавшаяся в сети, пробует загрузиться ещё раз ----------
+     Снимки грузятся лениво и по одному запросу; обрыв соединения оставил бы пустой корпус
+     телефона до перезагрузки страницы. Попытка одна: вторая неудача — уже не случайность. */
+  const retry = img => {
+    if (img.dataset.retried) return;
+    img.dataset.retried = '1';
+    setTimeout(() => {
+      const { src, srcset } = img;
+      img.removeAttribute('srcset');
+      img.removeAttribute('src');
+      if (srcset) img.srcset = srcset;
+      img.src = src;
+    }, 1200);
+  };
+  for (const img of document.images) {
+    if (img.complete && !img.naturalWidth && img.currentSrc) retry(img);
+    else img.addEventListener('error', () => retry(img), { once: true });
+  }
+
   /* ---------- закреплённая шапка: видна между кнопками первого экрана и кнопками финала ---------- */
   const topbar = $('#topbar');
   const ctaTop = $('#cta-top');
