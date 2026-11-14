@@ -16,21 +16,24 @@
 
   /* ---------- картинка, оборвавшаяся в сети, пробует загрузиться ещё раз ----------
      Снимки грузятся лениво и по одному запросу; обрыв соединения оставил бы пустой корпус
-     телефона до перезагрузки страницы. Попытка одна: вторая неудача — уже не случайность. */
+     телефона до перезагрузки страницы. Попыток три, с растущей паузой (1,2 / 2,4 / 4,8 с):
+     на живом хостинге подряд рвались и запрос, и первый повтор. */
+  const RETRIES = 3;
   const retry = img => {
-    if (img.dataset.retried) return;
-    img.dataset.retried = '1';
+    const n = +(img.dataset.retries || 0);
+    if (n >= RETRIES) return;
+    img.dataset.retries = n + 1;
     setTimeout(() => {
       const { src, srcset } = img;
       img.removeAttribute('srcset');
       img.removeAttribute('src');
       if (srcset) img.srcset = srcset;
       img.src = src;
-    }, 1200);
+    }, 1200 * 2 ** n);
   };
   for (const img of document.images) {
+    img.addEventListener('error', () => retry(img));
     if (img.complete && !img.naturalWidth && img.currentSrc) retry(img);
-    else img.addEventListener('error', () => retry(img), { once: true });
   }
 
   /* ---------- закреплённая шапка: видна между кнопками первого экрана и кнопками финала ---------- */
